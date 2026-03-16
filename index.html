@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analisador Granulométrico de Areias — NBR 7211</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#f0f2f5;color:#1a1a1a;font-family:sans-serif;min-height:100vh;}
+.topbar{background:#1a1a1a;color:#fff;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar-title{font-size:15px;font-weight:500;}
+.topbar-sub{font-size:11px;color:rgba(255,255,255,.55);margin-top:1px;}
+.topbar-badge{font-size:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;color:rgba(255,255,255,.8);}
+.container{max-width:1100px;margin:0 auto;padding:24px 16px;}
+.tabs{display:flex;gap:2px;border-bottom:1px solid #e0e0e0;margin-bottom:1.5rem;background:#fff;border-radius:10px 10px 0 0;padding:0 8px;flex-wrap:wrap;}
+.tab{padding:12px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#666;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap;transition:color .15s;}
+.tab:hover{color:#1a1a1a;}
+.tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a;font-weight:500;}
+.section-title{font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.card{background:#fff;border:1px solid #e4e4e4;border-radius:10px;padding:1.25rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.metric{background:#f7f7f7;border-radius:8px;padding:10px 12px;text-align:center;}
+.metric-label{font-size:11px;color:#777;margin-bottom:4px;line-height:1.4;}
+.metric-value{font-size:18px;font-weight:500;color:#1a1a1a;}
+.ok{color:#1D9E75!important;}.warn{color:#BA7517!important;}.bad{color:#E24B4A!important;}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+.grid-5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;}
+.grid-6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;}
+@media(max-width:700px){.grid-4,.grid-5,.grid-6{grid-template-columns:repeat(2,1fr);}.grid-2{grid-template-columns:1fr;}}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{font-weight:500;color:#777;font-size:11px;text-align:right;padding:6px 7px;border-bottom:1px solid #e4e4e4;white-space:nowrap;background:#fafafa;}
+th:first-child{text-align:left;min-width:140px;}
+td{padding:5px 7px;text-align:right;border-bottom:1px solid #efefef;color:#1a1a1a;}
+td:first-child{text-align:left;}
+tr.calc td{color:#999;font-size:11px;}
+tr.destaque td{background:#f5f5f5;font-weight:500;color:#1a1a1a;}
+tr.ideal-row td{background:#fffbee;color:#7a5800;font-weight:500;}
+tr.ide-row td{background:#f0f7ff;color:#185FA5;}
+.massa-input{width:72px;text-align:center;font-size:13px;font-family:sans-serif;padding:5px 6px;border:1px solid #ccc;border-radius:4px;background:#fff;color:#1a1a1a;-webkit-text-fill-color:#1a1a1a;-moz-appearance:textfield;appearance:textfield;}
+.massa-input::-webkit-outer-spin-button,.massa-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.massa-input:focus{outline:none;border-color:#185FA5;box-shadow:0 0 0 2px rgba(24,95,165,.15);}
+.nome-input{font-size:13px;font-weight:500;font-family:sans-serif;padding:5px 9px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#1a1a1a;-webkit-text-fill-color:#1a1a1a;width:140px;}
+.text-input{font-size:13px;padding:7px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#1a1a1a;-webkit-text-fill-color:#1a1a1a;width:100%;}
+select{font-size:13px;padding:6px 9px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#1a1a1a;}
+button{padding:7px 16px;font-size:13px;border:1px solid #ccc;border-radius:8px;cursor:pointer;background:#f5f5f5;color:#1a1a1a;transition:background .15s;}
+button:hover{background:#e8e8e8;}
+button.primary{background:#1a1a1a;color:#fff;border-color:transparent;}
+button.primary:hover{background:#333;}
+button.danger{color:#E24B4A;border-color:transparent;background:none;}
+button.danger:hover{background:#fff5f5;}
+button.pdf-btn{background:#185FA5;color:#fff;border-color:transparent;padding:10px 22px;font-size:14px;border-radius:8px;}
+button.pdf-btn:hover{background:#0e4a82;}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500;}
+.badge-ok{background:#EAF3DE;color:#2d5a0e;}
+.badge-warn{background:#FEF3CD;color:#7a5200;}
+.badge-bad{background:#FDECEA;color:#991f1f;}
+.flex{display:flex;align-items:center;gap:8px;}
+.flex-between{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.slider-row label{font-size:13px;color:#1a1a1a;min-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.slider-row input[type=range]{flex:1;}
+.slider-row .pct{font-size:13px;font-weight:500;color:#1a1a1a;min-width:42px;text-align:right;}
+.note{font-size:11px;color:#999;margin-top:6px;}
+.ide-box{background:#f0f7ff;border:1px solid #c5ddf7;border-radius:10px;padding:16px 20px;margin-bottom:1rem;}
+.ide-number{font-size:40px;font-weight:500;color:#185FA5;line-height:1;}
+.legend-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#555;}
+/* ── sobre ── */
+.sobre-hero{background:linear-gradient(135deg,#1a1a1a 0%,#1e3a5f 100%);border-radius:12px;padding:2.5rem;color:#fff;margin-bottom:1.5rem;}
+.sobre-hero h1{font-size:24px;font-weight:500;margin-bottom:8px;line-height:1.3;}
+.sobre-hero p{font-size:13px;color:rgba(255,255,255,.72);line-height:1.7;max-width:680px;}
+.sobre-badge{display:inline-block;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:4px 14px;font-size:11px;color:rgba(255,255,255,.85);margin-top:14px;}
+.step-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:1.5rem;}
+.step-card{border:1px solid #e4e4e4;border-radius:10px;padding:16px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.step-num{font-size:26px;font-weight:500;color:#185FA5;margin-bottom:6px;}
+.step-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:5px;}
+.step-desc{font-size:12px;color:#666;line-height:1.6;}
+.ref-block{background:#f9f9f9;border-left:3px solid #185FA5;border-radius:0 8px 8px 0;padding:10px 16px;margin-bottom:10px;font-size:12px;color:#444;line-height:1.7;}
+.ref-block strong{color:#1a1a1a;}
+.chart-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:2px;}
+.chart-sub{font-size:11px;color:#999;margin-bottom:10px;}
+footer{text-align:center;padding:24px 16px;font-size:11px;color:#aaa;border-top:1px solid #e4e4e4;margin-top:2rem;background:#fff;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">Analisador Granulométrico de Areias</div>
+    <div class="topbar-sub">Análise · Misturas · IDE · Relatório PDF</div>
+  </div>
+  <span class="topbar-badge">NBR 7211 · NBR NM 248</span>
+</div>
+
+<div class="container">
+<div style="background:#fff;border-radius:10px;border:1px solid #e4e4e4;box-shadow:0 1px 4px rgba(0,0,0,.05);padding:0 8px;">
+<div class="tabs">
+  <button class="tab active" onclick="showTab('sobre')">Sobre</button>
+  <button class="tab" onclick="showTab('areias')">Areias</button>
+  <button class="tab" onclick="showTab('mistura')">Mistura</button>
+  <button class="tab" onclick="showTab('grafico')">Gráficos</button>
+  <button class="tab" onclick="showTab('relatorio')">Relatório PDF</button>
+</div>
+</div>
+
+<div style="margin-top:1rem;">
+
+<!-- ══ SOBRE ══ -->
+<div id="tab-sobre">
+  <div class="sobre-hero">
+    <h1>Analisador Granulométrico de Areias</h1>
+    <p>Ferramenta para análise granulométrica, otimização de misturas binárias e ternárias e cálculo do Índice de Desvio de Empacotamento (IDE) conforme NBR 7211. Desenvolvida para uso em laboratório de materiais de construção.</p>
+    <div><span class="sobre-badge">NBR 7211 · NBR NM 248 · Método IDE — Prof. Roberto Christ (Unisinos)</span></div>
+  </div>
+  <div class="section-title">Como utilizar</div>
+  <div class="step-grid">
+    <div class="step-card"><div class="step-num">1</div><div class="step-title">Cadastrar areias</div><div class="step-desc">Na aba <strong>Areias</strong>, insira a massa retida em gramas em cada peneira (9,5 mm até fundo) para cada areia ensaiada. O programa calcula automaticamente % retido, % retido acumulado, % passante, módulo de finura, DMC e IDE.</div></div>
+    <div class="step-card"><div class="step-num">2</div><div class="step-title">Analisar individualmente</div><div class="step-desc">Cada areia é avaliada quanto ao enquadramento nas zonas ótima e utilizável da NBR 7211. O IDE indica o desvio em relação à curva ideal (média da zona ótima em cada peneira).</div></div>
+    <div class="step-card"><div class="step-num">3</div><div class="step-title">Otimizar mistura</div><div class="step-desc">Na aba <strong>Mistura</strong>, selecione 2 ou 3 areias. Clique em <em>Otimizar pelo IDE</em> para encontrar automaticamente a proporção que minimiza o desvio em relação à curva ideal, ou ajuste manualmente pelos sliders.</div></div>
+    <div class="step-card"><div class="step-num">4</div><div class="step-title">Visualizar gráficos</div><div class="step-desc">Na aba <strong>Gráficos</strong> visualize dois gráficos separados: curvas individuais de cada areia (Gráfico 1) e curva ajustada da mistura comparada à curva ideal e às zonas NBR (Gráfico 2).</div></div>
+    <div class="step-card"><div class="step-num">5</div><div class="step-title">Exportar relatório</div><div class="step-desc">Na aba <strong>Relatório PDF</strong>, informe o nome do projeto e responsável técnico, então clique em <em>Gerar PDF</em> para exportar o relatório completo com tabelas, gráficos e o IDE da mistura.</div></div>
+  </div>
+  <div class="section-title">Conceitos e referências normativas</div>
+  <div class="ref-block"><strong>Módulo de finura (MF)</strong> — NBR NM 248: soma dos retidos acumulados nas peneiras 0,15 / 0,30 / 0,60 / 1,18 / 2,36 / 4,75 mm dividida por 100. Classifica a areia como fina (MF &lt; 2,20), média (2,20 ≤ MF ≤ 3,50) ou grossa (MF &gt; 3,50).</div>
+  <div class="ref-block"><strong>Dimensão Máxima Característica (DMC)</strong> — NBR 7211: menor peneira com até 5% de material retido acumulado. Caso a primeira peneira com material já supere 5%, o DMC corresponde à peneira imediatamente superior.</div>
+  <div class="ref-block"><strong>Zonas granulométricas</strong> — NBR 7211: define zona ótima e zona utilizável para agregado miúdo. Areias dentro da zona ótima proporcionam melhor trabalhabilidade e resistência ao concreto.</div>
+  <div class="ref-block"><strong>Curva ideal</strong> — Média aritmética entre os limites inferior e superior da zona ótima em cada peneira. Representa a distribuição granulométrica mais equilibrada dentro da zona ótima.</div>
+  <div class="ref-block"><strong>IDE — Índice de Desvio de Empacotamento</strong> — Baseado no método do Prof. Roberto Christ (Unisinos): soma dos desvios absolutos entre a curva granulométrica ajustada e a curva ideal em todas as peneiras analisadas. Quanto menor o IDE, mais próxima a mistura está da distribuição ideal. Classificação: Excelente (≤ 20), Bom (≤ 40), Regular (≤ 70), Ruim (&gt; 70).</div>
+  <div style="margin-top:1.5rem;text-align:right;"><button class="primary" onclick="showTab('areias')">Começar → inserir areias</button></div>
+</div>
+
+<!-- ══ AREIAS ══ -->
+<div id="tab-areias" style="display:none">
+  <div class="flex-between" style="margin-bottom:14px">
+    <span class="section-title" style="margin:0">Areias cadastradas</span>
+    <button class="primary" onclick="addAreia()">+ Nova areia</button>
+  </div>
+  <div id="lista-areias"></div>
+</div>
+
+<!-- ══ MISTURA ══ -->
+<div id="tab-mistura" style="display:none">
+  <div class="card">
+    <div class="section-title">Tipo de mistura</div>
+    <div class="flex" style="margin-bottom:16px;gap:20px;">
+      <label style="font-size:13px;color:#1a1a1a;cursor:pointer;"><input type="radio" name="tipo" value="2" onchange="setTipoMistura(2)" checked> Binária (2 areias)</label>
+      <label style="font-size:13px;color:#1a1a1a;cursor:pointer;"><input type="radio" name="tipo" value="3" onchange="setTipoMistura(3)"> Ternária (3 areias)</label>
+    </div>
+    <div class="section-title">Selecionar areias</div>
+    <div id="sel-areias" style="margin-bottom:16px;display:grid;gap:12px;"></div>
+    <div class="section-title">Proporções (%)</div>
+    <div id="sliders-proporcoes"></div>
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="primary" onclick="otimizarMistura()">Otimizar pelo IDE ↗</button>
+      <button onclick="calcularMistura()">Calcular proporção atual</button>
+    </div>
+  </div>
+  <div id="resultado-mistura"></div>
+</div>
+
+<!-- ══ GRÁFICOS ══ -->
+<div id="tab-grafico" style="display:none">
+  <div class="card">
+    <div class="chart-title">Gráfico 1 — Curvas de ensaio (areias individuais)</div>
+    <div class="chart-sub">Resultado granulométrico de cada areia com as zonas de referência NBR 7211</div>
+    <div class="legend-row" id="legend-ensaios"></div>
+    <div style="position:relative;width:100%;height:380px;"><canvas id="chartEnsaios"></canvas></div>
+  </div>
+  <div class="card" style="margin-top:1.5rem;">
+    <div class="chart-title">Gráfico 2 — Curva ajustada vs. curva ideal</div>
+    <div class="chart-sub" id="sub-grafico2">Calcule uma mistura na aba Mistura para visualizar aqui</div>
+    <div class="legend-row" id="legend-mistura"></div>
+    <div style="position:relative;width:100%;height:380px;"><canvas id="chartMistura"></canvas></div>
+  </div>
+</div>
+
+<!-- ══ RELATÓRIO ══ -->
+<div id="tab-relatorio" style="display:none">
+  <div class="card">
+    <div class="section-title">Dados do relatório</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 160px;gap:14px;margin-bottom:16px;">
+      <div><label style="font-size:12px;color:#666;display:block;margin-bottom:5px;">Nome do projeto / obra</label><input type="text" id="rel-projeto" class="text-input" placeholder="Ex.: Obra Residencial Bloco A"></div>
+      <div><label style="font-size:12px;color:#666;display:block;margin-bottom:5px;">Responsável técnico</label><input type="text" id="rel-resp" class="text-input" placeholder="Nome do engenheiro"></div>
+      <div><label style="font-size:12px;color:#666;display:block;margin-bottom:5px;">Data</label><input type="text" id="rel-data" class="text-input"></div>
+    </div>
+    <div style="background:#fffbee;border:1px solid #f0d888;border-radius:8px;padding:10px 16px;font-size:12px;color:#7a5800;margin-bottom:18px;">
+      O PDF incluirá: identificação do projeto, tabelas de cada areia (massa retida, % retido, % acumulado, % passante, MF, DMC, IDE), resultado da mistura com desvios por peneira e os dois gráficos granulométricos.
+    </div>
+    <div class="flex" style="align-items:center;gap:14px;">
+      <button class="pdf-btn" onclick="gerarPDF()">⬇ Gerar e baixar PDF</button>
+      <span id="pdf-status" style="font-size:12px;color:#666;"></span>
+    </div>
+  </div>
+</div>
+
+</div><!-- end tab content wrapper -->
+</div><!-- end container -->
+
+<footer>
+  Analisador Granulométrico de Areias · NBR 7211 · NBR NM 248 · Índice de Desvio de Empacotamento (IDE)<br>
+  Desenvolvido por <strong>Jonathan Mello Kebhard</strong> · Ferramenta de uso livre para fins técnicos e educacionais
+</footer>
+
+<script>
+const PENEIRAS_DESC=[9.5,6.3,4.75,2.36,1.18,0.60,0.30,0.15,0];
+const LABELS_DESC=['9,5 mm','6,3 mm','4,75 mm','2,36 mm','1,18 mm','0,60 mm','0,30 mm','0,15 mm','Fundo'];
+const N=9;
+const CURVE_IDX_DESC=[7,6,5,4,3,2,1,0];
+const CURVE_LABELS=['0,15','0,30','0,60','1,18','2,36','4,75','6,3','9,5'];
+const ZONA_OTIMA={min:[0,10,41,65,86,95,100,100],max:[10,25,65,85,100,100,100,100]};
+const ZONA_UTIL={min:[0,0,25,50,75,90,100,100],max:[15,35,80,100,100,100,100,100]};
+const MF_IDX_DESC=[7,6,5,4,3,2];
+const CURVA_IDEAL=ZONA_OTIMA.min.map((v,i)=>(v+ZONA_OTIMA.max[i])/2);
+const CORES_AREIAS=['#185FA5','#E24B4A','#639922','#854F0B','#533AB7','#0F6E56'];
+
+let areias=[
+  {id:1,nome:'Areia A',massas:[0,0,0,0,0,0,0,0,0]},
+  {id:2,nome:'Areia B',massas:[0,0,0,0,0,0,0,0,0]},
+];
+let nextId=3,tipoMistura=2,proporcoes=[50,50,0],selecionadas=[1,2,-1];
+let chartEnsaios=null,chartMistura=null;
+let lastMixPassante=null,lastMixLabel='',lastMixData=null;
+
+function fmt1(v){return isNaN(v)?'—':parseFloat(v.toFixed(1));}
+function fmt2(v){return isNaN(v)?'—':parseFloat(v.toFixed(2));}
+function calcIDE(cp){return cp.reduce((s,v,i)=>s+Math.abs(v-CURVA_IDEAL[i]),0);}
+function ideQualidade(ide){return ide<=20?{txt:'Excelente',cor:'#1D9E75'}:ide<=40?{txt:'Bom',cor:'#639922'}:ide<=70?{txt:'Regular',cor:'#BA7517'}:{txt:'Ruim',cor:'#E24B4A'};}
+
+function calcDMC(retAcum){
+  let idx=0;
+  for(let i=0;i<N-1;i++){
+    if(retAcum[i]<=0)continue;
+    if(retAcum[i]<=5){idx=i;break;}
+    idx=(i===0)?0:i-1;break;
+  }
+  return PENEIRAS_DESC[idx];
+}
+
+function calcGranulo(massas){
+  let total=massas.reduce((a,b)=>a+b,0)||1;
+  let retPct=massas.map(m=>m/total*100);
+  let retAcum=[],acum=0;
+  for(let i=0;i<N;i++){acum+=retPct[i];retAcum.push(acum);}
+  let passante=retAcum.map((ra,i)=>i===N-1?0:Math.max(0,100-ra));
+  let mf=fmt2(MF_IDX_DESC.reduce((s,i)=>s+retAcum[i],0)/100);
+  let curvaPassante=CURVE_IDX_DESC.map(i=>passante[i]);
+  return{total,retPct,retAcum,passante,mf,dmc:calcDMC(retAcum),p030:passante[6],curvaPassante};
+}
+
+function avaliarCurva(cp){
+  let otima=0,util=0,fora=0;
+  for(let i=0;i<8;i++){
+    let v=cp[i];
+    if(v>=ZONA_OTIMA.min[i]&&v<=ZONA_OTIMA.max[i])otima++;
+    else if(v>=ZONA_UTIL.min[i]&&v<=ZONA_UTIL.max[i])util++;
+    else fora++;
+  }
+  return{otima,util,fora};
+}
+
+function refreshCalcRows(id){
+  let a=areias.find(a=>a.id===id);if(!a)return;
+  let g=calcGranulo(a.massas);
+  let aval=avaliarCurva(g.curvaPassante);
+  let el=s=>document.getElementById(s);
+  if(el('total-'+id))el('total-'+id).textContent=fmt1(g.total);
+  for(let i=0;i<N;i++){
+    if(el('rp-'+id+'-'+i))el('rp-'+id+'-'+i).textContent=fmt1(g.retPct[i]);
+    if(el('ra-'+id+'-'+i))el('ra-'+id+'-'+i).textContent=fmt1(g.retAcum[i]);
+    if(el('ps-'+id+'-'+i))el('ps-'+id+'-'+i).textContent=fmt1(g.passante[i]);
+  }
+  let mfCls=g.mf<2.2?'bad':g.mf<=3.5?'ok':'warn';
+  if(el('mf-'+id)){el('mf-'+id).textContent=fmt2(g.mf);el('mf-'+id).className='metric-value '+mfCls;}
+  if(el('dmc-'+id))el('dmc-'+id).textContent=g.dmc+' mm';
+  if(el('p030-'+id))el('p030-'+id).textContent=fmt1(g.p030)+'%';
+  if(el('ot-'+id))el('ot-'+id).textContent=aval.otima+'/8';
+  let cls=aval.fora===0?(aval.util===0?'badge-ok':'badge-warn'):'badge-bad';
+  let txt=aval.fora===0?(aval.util===0?'zona ótima':'utilizável'):'fora da zona';
+  if(el('badge-'+id)){el('badge-'+id).className='badge '+cls;el('badge-'+id).textContent=txt;}
+  if(el('ide-'+id))el('ide-'+id).textContent=fmt1(calcIDE(g.curvaPassante));
+  if(chartEnsaios)renderChartEnsaios();
+}
+
+function onMassaInput(id,idx,val){
+  let a=areias.find(a=>a.id===id);if(!a)return;
+  a.massas[idx]=parseFloat(val)||0;
+  refreshCalcRows(id);
+}
+
+function renderAreias(){
+  let c=document.getElementById('lista-areias');
+  if(!areias.length){c.innerHTML='<div style="color:#666;font-size:13px;padding:24px 0">Nenhuma areia cadastrada. Clique em "+ Nova areia" para começar.</div>';return;}
+  c.innerHTML=areias.map(a=>{
+    let g=calcGranulo(a.massas);
+    let aval=avaliarCurva(g.curvaPassante);
+    let ide=calcIDE(g.curvaPassante);
+    let cls=aval.fora===0?(aval.util===0?'badge-ok':'badge-warn'):'badge-bad';
+    let txt=aval.fora===0?(aval.util===0?'zona ótima':'utilizável'):'fora da zona';
+    let mfCls=g.mf<2.2?'bad':g.mf<=3.5?'ok':'warn';
+    let thCols=LABELS_DESC.map(l=>'<th>'+l+'</th>').join('');
+    let inputRow=a.massas.map((m,i)=>'<td><input class="massa-input" type="number" min="0" step="0.1" value="'+m+'" oninput="onMassaInput('+a.id+','+i+',this.value)"></td>').join('');
+    let rpRow=a.massas.map((_,i)=>'<td id="rp-'+a.id+'-'+i+'">'+fmt1(g.retPct[i])+'</td>').join('');
+    let raRow=a.massas.map((_,i)=>'<td id="ra-'+a.id+'-'+i+'" '+(MF_IDX_DESC.includes(i)?'style="color:#185FA5;font-weight:500"':'')+'>'+fmt1(g.retAcum[i])+'</td>').join('');
+    let psRow=a.massas.map((_,i)=>'<td id="ps-'+a.id+'-'+i+'">'+fmt1(g.passante[i])+'</td>').join('');
+    let idealRow=CURVA_IDEAL.map(v=>'<td style="color:#c8960c;font-weight:500">'+fmt1(v)+'</td>').join('');
+    let desvRow=g.curvaPassante.map((v,i)=>{let d=parseFloat((v-CURVA_IDEAL[i]).toFixed(1));let col=Math.abs(d)<=5?'#1D9E75':Math.abs(d)<=15?'#BA7517':'#E24B4A';return'<td style="color:'+col+';font-weight:500">'+(d>0?'+':'')+d+'</td>';}).join('');
+    return '<div class="card"><div class="flex-between" style="margin-bottom:12px"><div class="flex"><input class="nome-input" type="text" value="'+a.nome+'" oninput="renomearAreia('+a.id+',this.value)"><span class="badge '+cls+'" id="badge-'+a.id+'">'+txt+'</span></div><button class="danger" onclick="removerAreia('+a.id+')">Remover</button></div>'
+    +'<div class="grid-5" style="margin-bottom:14px">'
+    +'<div class="metric"><div class="metric-label">Módulo de finura</div><div class="metric-value '+mfCls+'" id="mf-'+a.id+'">'+fmt2(g.mf)+'</div></div>'
+    +'<div class="metric"><div class="metric-label">Dim. máx. caract.</div><div class="metric-value" id="dmc-'+a.id+'">'+g.dmc+' mm</div></div>'
+    +'<div class="metric"><div class="metric-label">Passante 0,30 mm</div><div class="metric-value" id="p030-'+a.id+'">'+fmt1(g.p030)+'%</div></div>'
+    +'<div class="metric"><div class="metric-label">Pontos zona ótima</div><div class="metric-value ok" id="ot-'+a.id+'">'+aval.otima+'/8</div></div>'
+    +'<div class="metric" style="background:#f0f7ff"><div class="metric-label">IDE</div><div class="metric-value" style="color:#185FA5" id="ide-'+a.id+'">'+fmt1(ide)+'</div></div>'
+    +'</div><div style="overflow-x:auto"><table>'
+    +'<tr><th>Peneira</th>'+thCols+'<th>Total</th></tr>'
+    +'<tr><td style="font-weight:500">Massa retida (g)</td>'+inputRow+'<td id="total-'+a.id+'" style="font-weight:500">'+fmt1(g.total)+'</td></tr>'
+    +'<tr class="calc"><td>% retido</td>'+rpRow+'<td>100</td></tr>'
+    +'<tr class="calc"><td>% ret. acumulado</td>'+raRow+'<td>—</td></tr>'
+    +'<tr class="destaque"><td>% passante</td>'+psRow+'<td>—</td></tr>'
+    +'<tr class="ideal-row"><td>Curva ideal (%)</td>'+idealRow+'<td>—</td></tr>'
+    +'<tr class="ide-row"><td>Desvio (pass. − ideal)</td>'+desvRow+'<td>—</td></tr>'
+    +'</table></div>'
+    +'<div class="note">* Azul = peneiras usadas no módulo de finura (0,15 a 4,75 mm) &nbsp;|&nbsp; Curva ideal = média da zona ótima</div>'
+    +'</div>';
+  }).join('');
+}
+
+function renderChartEnsaios(){
+  let canvas=document.getElementById('chartEnsaios');
+  if(chartEnsaios){chartEnsaios.destroy();chartEnsaios=null;}
+  let ds=[];
+  ds.push({label:'Zona ótima',data:ZONA_OTIMA.min,borderColor:'rgba(29,158,117,0.45)',backgroundColor:'rgba(29,158,117,0.10)',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3,order:10});
+  ds.push({label:'_om',data:ZONA_OTIMA.max,borderColor:'rgba(29,158,117,0.45)',backgroundColor:'rgba(29,158,117,0.10)',borderWidth:1.5,pointRadius:0,fill:'-1',tension:0.3,order:10});
+  ds.push({label:'Zona utilizável',data:ZONA_UTIL.min,borderColor:'rgba(186,117,23,0.3)',backgroundColor:'rgba(186,117,23,0.06)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0.3,order:11});
+  ds.push({label:'_um',data:ZONA_UTIL.max,borderColor:'rgba(186,117,23,0.3)',backgroundColor:'rgba(186,117,23,0.06)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:'-1',tension:0.3,order:11});
+  areias.forEach((a,idx)=>{let g=calcGranulo(a.massas);ds.push({label:a.nome,data:g.curvaPassante,borderColor:CORES_AREIAS[idx%CORES_AREIAS.length],backgroundColor:'transparent',borderWidth:2,pointRadius:4,pointBackgroundColor:CORES_AREIAS[idx%CORES_AREIAS.length],tension:0.3,order:5-idx});});
+  chartEnsaios=new Chart(canvas,{type:'line',data:{labels:CURVE_LABELS,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,filter:i=>!i.dataset.label.startsWith('_')}},scales:{y:{min:0,max:100,title:{display:true,text:'Passante acumulado (%)',font:{size:11},color:'#666'},ticks:{color:'#666'},grid:{color:'rgba(0,0,0,0.06)'}},x:{title:{display:true,text:'Abertura da peneira (mm)',font:{size:11},color:'#666'},ticks:{color:'#666'},grid:{color:'rgba(0,0,0,0.06)'}}}}});
+  let items=[{label:'Zona ótima',color:'rgba(29,158,117,0.7)',dash:false},{label:'Zona utilizável',color:'rgba(186,117,23,0.6)',dash:true},...areias.map((a,i)=>({label:a.nome,color:CORES_AREIAS[i%CORES_AREIAS.length],dash:false}))];
+  document.getElementById('legend-ensaios').innerHTML=items.map(it=>'<span class="legend-item"><span style="width:22px;height:'+(it.dash?'0':'3px')+';'+(it.dash?'border-top:2px dashed '+it.color+';':'background:'+it.color+';')+'display:inline-block;border-radius:2px;"></span>'+it.label+'</span>').join('');
+}
+
+function renderChartMistura(mixPassante,label){
+  let canvas=document.getElementById('chartMistura');
+  if(chartMistura){chartMistura.destroy();chartMistura=null;}
+  let ds=[];
+  ds.push({label:'Zona ótima',data:ZONA_OTIMA.min,borderColor:'rgba(29,158,117,0.45)',backgroundColor:'rgba(29,158,117,0.10)',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3,order:10});
+  ds.push({label:'_om',data:ZONA_OTIMA.max,borderColor:'rgba(29,158,117,0.45)',backgroundColor:'rgba(29,158,117,0.10)',borderWidth:1.5,pointRadius:0,fill:'-1',tension:0.3,order:10});
+  ds.push({label:'Zona utilizável',data:ZONA_UTIL.min,borderColor:'rgba(186,117,23,0.3)',backgroundColor:'rgba(186,117,23,0.06)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0.3,order:11});
+  ds.push({label:'_um',data:ZONA_UTIL.max,borderColor:'rgba(186,117,23,0.3)',backgroundColor:'rgba(186,117,23,0.06)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:'-1',tension:0.3,order:11});
+  ds.push({label:'Curva ideal',data:CURVA_IDEAL,borderColor:'#c8960c',backgroundColor:'transparent',borderWidth:2,borderDash:[8,4],pointRadius:4,pointBackgroundColor:'#c8960c',tension:0.3,order:3});
+  if(mixPassante)ds.push({label:label||'Mistura ajustada',data:mixPassante,borderColor:'#1a1a1a',backgroundColor:'transparent',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#1a1a1a',tension:0.3,order:1});
+  chartMistura=new Chart(canvas,{type:'line',data:{labels:CURVE_LABELS,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,filter:i=>!i.dataset.label.startsWith('_')}},scales:{y:{min:0,max:100,title:{display:true,text:'Passante acumulado (%)',font:{size:11},color:'#666'},ticks:{color:'#666'},grid:{color:'rgba(0,0,0,0.06)'}},x:{title:{display:true,text:'Abertura da peneira (mm)',font:{size:11},color:'#666'},ticks:{color:'#666'},grid:{color:'rgba(0,0,0,0.06)'}}}}});
+  let ide=mixPassante?calcIDE(mixPassante):null;
+  let iq=ide!=null?ideQualidade(ide):null;
+  document.getElementById('legend-mistura').innerHTML=
+    '<span class="legend-item"><span style="width:22px;height:3px;background:rgba(29,158,117,0.7);display:inline-block;border-radius:2px;"></span>Zona ótima</span>'+
+    '<span class="legend-item"><span style="width:22px;height:0;border-top:2px dashed rgba(186,117,23,0.6);display:inline-block;"></span>Zona utilizável</span>'+
+    '<span class="legend-item"><span style="width:22px;height:0;border-top:2px dashed #c8960c;display:inline-block;"></span>Curva ideal</span>'+
+    (mixPassante?'<span class="legend-item"><span style="width:22px;height:3px;background:#1a1a1a;display:inline-block;border-radius:2px;"></span>'+(label||'Mistura')+'</span><span class="legend-item" style="font-weight:500;color:'+iq.cor+'">IDE = '+fmt1(ide)+' — '+iq.txt+'</span>':'');
+  if(mixPassante)document.getElementById('sub-grafico2').textContent='Mistura: '+label+' — comparação com a curva ideal e zonas NBR 7211';
+}
+
+function calcMistura(ids,props){
+  let total=ids.reduce((s,id,i)=>id>0&&props[i]>0?s+props[i]:s,0)||1;
+  let curva=Array(8).fill(0),raAcum=Array(N).fill(0);
+  ids.forEach((id,i)=>{if(id<=0||props[i]<=0)return;let a=areias.find(a=>a.id===id);if(!a)return;let g=calcGranulo(a.massas);for(let j=0;j<8;j++)curva[j]+=g.curvaPassante[j]*(props[i]/total);for(let j=0;j<N;j++)raAcum[j]+=g.retAcum[j]*(props[i]/total);});
+  return{curvaPassante:curva.map(v=>parseFloat(v.toFixed(1))),mf:fmt2(MF_IDX_DESC.reduce((s,i)=>s+raAcum[i],0)/100),dmc:calcDMC(raAcum),p030:parseFloat(curva[1].toFixed(1))};
+}
+
+function otimizarMistura(){
+  let ids=selecionadas.slice(0,tipoMistura);
+  if(ids.filter(id=>id>0).length<2){alert('Selecione pelo menos 2 areias.');return;}
+  let bestIDE=Infinity,bestP=null,step=2;
+  if(tipoMistura===2){for(let p0=0;p0<=100;p0+=step){let ide=calcIDE(calcMistura([ids[0],ids[1]],[p0,100-p0]).curvaPassante);if(ide<bestIDE){bestIDE=ide;bestP=[p0,100-p0];}}}
+  else{for(let p0=0;p0<=100;p0+=step)for(let p1=0;p1<=100-p0;p1+=step){let ide=calcIDE(calcMistura([ids[0],ids[1],ids[2]],[p0,p1,100-p0-p1]).curvaPassante);if(ide<bestIDE){bestIDE=ide;bestP=[p0,p1,100-p0-p1];}}}
+  proporcoes=bestP;renderSliders();calcularMistura();
+}
+
+function calcularMistura(){
+  let ids=selecionadas.slice(0,tipoMistura);
+  let mix=calcMistura(ids,proporcoes);
+  let aval=avaliarCurva(mix.curvaPassante);
+  let ide=calcIDE(mix.curvaPassante);
+  let iq=ideQualidade(ide);
+  let badgeCls=aval.fora===0?(aval.util===0?'badge-ok':'badge-warn'):'badge-bad';
+  let statusText=aval.fora===0?(aval.util===0?'Dentro da zona ótima':'Zona utilizável'):'Fora da zona';
+  let mfCls=mix.mf<2.2?'bad':mix.mf<=3.5?'ok':'warn';
+  let mfDesc=mix.mf<2.2?'Fina':mix.mf<=3.5?'Média':mix.mf<=4.5?'Grossa':'Muito grossa';
+  lastMixPassante=mix.curvaPassante;
+  let propsAtivas=ids.map((id,i)=>{let a=areias.find(a=>a.id===id);return a?a.nome+' '+proporcoes[i]+'%':''}).filter(Boolean).join(' + ');
+  lastMixLabel=propsAtivas;
+  lastMixData={mix,aval,ide,iq,ids,propsAtivas,mfDesc,mfCls,badgeCls,statusText};
+  let desvMix=mix.curvaPassante.map((v,i)=>{let d=parseFloat((v-CURVA_IDEAL[i]).toFixed(1));let col=Math.abs(d)<=5?'#1D9E75':Math.abs(d)<=15?'#BA7517':'#E24B4A';return'<td style="color:'+col+';font-weight:500">'+(d>0?'+':'')+d+'</td>';}).join('');
+  let html='<div class="ide-box"><div class="flex-between">'
+    +'<div><div style="font-size:12px;font-weight:500;color:#185FA5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">IDE — Índice de Desvio de Empacotamento</div>'
+    +'<div class="flex" style="align-items:baseline;gap:10px"><span class="ide-number">'+fmt1(ide)+'</span><span style="font-size:14px;font-weight:500;color:'+iq.cor+'">'+iq.txt+'</span></div>'
+    +'<div style="font-size:11px;color:#666;margin-top:4px">Soma dos |desvios| entre curva ajustada e curva ideal (8 peneiras)</div></div>'
+    +'<div style="text-align:right;font-size:11px;line-height:1.8"><div style="color:#666;margin-bottom:2px">Referência</div>'
+    +'<div style="color:#1D9E75">≤ 20 → Excelente</div><div style="color:#639922">≤ 40 → Bom</div><div style="color:#BA7517">≤ 70 → Regular</div><div style="color:#E24B4A">&gt; 70 → Ruim</div>'
+    +'</div></div></div>'
+    +'<div class="card"><div class="flex-between" style="margin-bottom:14px"><div><span style="font-size:15px;font-weight:500">Resultado da mistura</span><div style="font-size:12px;color:#666;margin-top:3px">'+propsAtivas+'</div></div><span class="badge '+badgeCls+'">'+statusText+'</span></div>'
+    +'<div class="grid-6" style="margin-bottom:16px">'
+    +'<div class="metric"><div class="metric-label">Módulo de finura</div><div class="metric-value '+mfCls+'">'+mix.mf+'</div><div style="font-size:10px;color:#888;margin-top:2px">'+mfDesc+'</div></div>'
+    +'<div class="metric"><div class="metric-label">Dim. máx. caract.</div><div class="metric-value">'+mix.dmc+' mm</div></div>'
+    +'<div class="metric"><div class="metric-label">Passante 0,30 mm</div><div class="metric-value">'+mix.p030+'%</div></div>'
+    +'<div class="metric"><div class="metric-label">Zona ótima</div><div class="metric-value ok">'+aval.otima+'/8</div></div>'
+    +'<div class="metric"><div class="metric-label">Fora da zona</div><div class="metric-value '+(aval.fora>0?'bad':'ok')+'">'+aval.fora+'/8</div></div>'
+    +'<div class="metric" style="background:#f0f7ff"><div class="metric-label">IDE</div><div class="metric-value" style="color:'+iq.cor+'">'+fmt1(ide)+'</div></div>'
+    +'</div>'
+    +'<div style="overflow-x:auto"><table>'
+    +'<tr><th>Peneira</th>'+CURVE_LABELS.map(l=>'<th>'+l+' mm</th>').join('')+'</tr>'
+    +'<tr class="destaque"><td>Passante mistura (%)</td>'+mix.curvaPassante.map(v=>'<td>'+v+'</td>').join('')+'</tr>'
+    +'<tr class="ideal-row"><td>Curva ideal (%)</td>'+CURVA_IDEAL.map(v=>'<td>'+fmt1(v)+'</td>').join('')+'</tr>'
+    +'<tr class="ide-row"><td>Desvio (pass. − ideal)</td>'+desvMix+'</tr>'
+    +'<tr class="calc"><td>Ótima mín. (%)</td>'+ZONA_OTIMA.min.map(v=>'<td>'+v+'</td>').join('')+'</tr>'
+    +'<tr class="calc"><td>Ótima máx. (%)</td>'+ZONA_OTIMA.max.map(v=>'<td>'+v+'</td>').join('')+'</tr>'
+    +'<tr><td>Status por peneira</td>'+mix.curvaPassante.map((v,i)=>{let io=v>=ZONA_OTIMA.min[i]&&v<=ZONA_OTIMA.max[i];let iu=v>=ZONA_UTIL.min[i]&&v<=ZONA_UTIL.max[i];return'<td><span class="badge '+(io?'badge-ok':iu?'badge-warn':'badge-bad')+'">'+(io?'ótima':iu?'util.':'fora')+'</span></td>';}).join('')+'</tr>'
+    +'</table></div>'
+    +'<div style="margin-top:14px;padding-top:14px;border-top:1px solid #eee"><div class="section-title" style="margin-bottom:8px">Comparativo por areia</div>'
+    +'<div style="overflow-x:auto"><table><tr><th style="text-align:left">Areia</th><th>Proporção</th><th>MF</th><th>DMC (mm)</th><th>Pass. 0,30mm</th><th>IDE</th><th>Zona</th></tr>';
+  ids.forEach((id,i)=>{
+    let a=areias.find(a=>a.id===id);if(!a)return;
+    let g=calcGranulo(a.massas);let av=avaliarCurva(g.curvaPassante);
+    let ideA=calcIDE(g.curvaPassante);let iqA=ideQualidade(ideA);
+    let zc=av.fora===0?(av.util===0?'badge-ok':'badge-warn'):'badge-bad';
+    let zt=av.fora===0?(av.util===0?'ótima':'util.'):'fora';
+    html+='<tr><td>'+a.nome+'</td><td>'+proporcoes[i]+'%</td><td>'+fmt2(g.mf)+'</td><td>'+g.dmc+'</td><td>'+fmt1(g.p030)+'%</td><td style="color:'+iqA.cor+';font-weight:500">'+fmt1(ideA)+'</td><td><span class="badge '+zc+'">'+zt+'</span></td></tr>';
+  });
+  html+='<tr class="destaque"><td>Mistura final</td><td>100%</td><td>'+mix.mf+'</td><td>'+mix.dmc+'</td><td>'+mix.p030+'%</td><td style="color:'+iq.cor+';font-weight:500">'+fmt1(ide)+'</td><td><span class="badge '+badgeCls+'">'+statusText+'</span></td></tr>'
+    +'</table></div></div>'
+    +'<div style="margin-top:12px;text-align:right"><button onclick="showTab(\'grafico\')">Ver nos gráficos →</button></div></div>';
+  document.getElementById('resultado-mistura').innerHTML=html;
+  if(chartMistura)renderChartMistura(lastMixPassante,lastMixLabel);
+}
+
+async function gerarPDF(){
+  if(!lastMixPassante){alert('Calcule uma mistura antes de gerar o PDF.');return;}
+  let status=document.getElementById('pdf-status');
+  status.textContent='⏳ Gerando PDF...';
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,M=15,CW=W-2*M;
+  let y=M;
+  const projeto=document.getElementById('rel-projeto').value||'—';
+  const resp=document.getElementById('rel-resp').value||'—';
+  const data=document.getElementById('rel-data').value||new Date().toLocaleDateString('pt-BR');
+  doc.setFillColor(26,26,26);doc.rect(0,0,W,30,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont('helvetica','bold');
+  doc.text('Análise Granulométrica de Areias',M,13);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text('Análise granulométrica conforme NBR 7211 · NBR NM 248 · Índice de Desvio de Empacotamento (IDE)',M,20);
+  doc.setFontSize(8);doc.text('Projeto: '+projeto+'   |   Responsável: '+resp+'   |   Data: '+data,M,27);
+  y=40;
+  const lh=6;
+  function chkPage(){if(y>270){doc.addPage();y=M;}}
+  function secTit(txt){chkPage();doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(26,26,26);doc.text(txt,M,y);y+=lh;}
+  function hrow(cols,widths){doc.setFillColor(235,235,235);doc.rect(M,y-4,CW,lh,'F');doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(80,80,80);let x=M;cols.forEach((c,i)=>{doc.text(String(c),x+1,y);x+=widths[i];});doc.setFont('helvetica','normal');y+=lh;}
+  function row(cols,widths,fill){chkPage();if(fill){doc.setFillColor(...fill);doc.rect(M,y-4,CW,lh,'F');}doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);let x=M;cols.forEach((c,i)=>{doc.text(String(c),x+1,y);x+=widths[i];});y+=lh;}
+  areias.forEach(a=>{
+    chkPage();secTit('Areia: '+a.nome);
+    let g=calcGranulo(a.massas);let aval=avaliarCurva(g.curvaPassante);let ide=calcIDE(g.curvaPassante);let iq=ideQualidade(ide);
+    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+    doc.text('MF: '+fmt2(g.mf)+'   DMC: '+g.dmc+' mm   Pass. 0,30mm: '+fmt1(g.p030)+'%   IDE: '+fmt1(ide)+' ('+iq.txt+')   Zona ótima: '+aval.otima+'/8',M,y);y+=lh;
+    let pw=[30,18,18,18,18,18,18,18,18,18];
+    hrow(['Linha','9,5','6,3','4,75','2,36','1,18','0,60','0,30','0,15','Fundo'],pw);
+    row(['Massa (g)',...a.massas.map(v=>fmt1(v))],pw);
+    row(['% retido',...g.retPct.map(v=>fmt1(v))],pw,[248,248,248]);
+    row(['% ret. acum.',...g.retAcum.map(v=>fmt1(v))],pw);
+    row(['% passante',...g.passante.map(v=>fmt1(v))],pw,[245,248,255]);
+    y+=4;
+  });
+  chkPage();secTit('Resultado da Mistura Otimizada');
+  let d=lastMixData;
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  doc.text('Composição: '+d.propsAtivas,M,y);y+=lh;
+  doc.text('MF: '+d.mix.mf+'   DMC: '+d.mix.dmc+' mm   Pass. 0,30mm: '+d.mix.p030+'%   IDE: '+fmt1(d.ide)+' ('+d.iq.txt+')   Status: '+d.statusText,M,y);y+=lh+2;
+  let pw2=[34,18,18,18,18,18,18,18,18];
+  hrow(['Peneira','0,15','0,30','0,60','1,18','2,36','4,75','6,3','9,5'],pw2);
+  row(['Passante mistura (%)',...d.mix.curvaPassante],pw2);
+  row(['Curva ideal (%)',...CURVA_IDEAL.map(v=>fmt1(v))],pw2,[255,251,225]);
+  row(['Desvio',...d.mix.curvaPassante.map((v,i)=>{let dv=parseFloat((v-CURVA_IDEAL[i]).toFixed(1));return(dv>0?'+':'')+dv;})],pw2,[240,247,255]);
+  row(['Ótima mín. (%)',...ZONA_OTIMA.min],pw2);
+  row(['Ótima máx. (%)',...ZONA_OTIMA.max],pw2,[248,248,248]);
+  y+=6;
+  status.textContent='⏳ Capturando gráficos...';
+  showTab('grafico');renderChartEnsaios();renderChartMistura(lastMixPassante,lastMixLabel);
+  await new Promise(r=>setTimeout(r,700));
+  async function addChart(canvasId,titulo){
+    chkPage();secTit(titulo);
+    try{let canvas=document.getElementById(canvasId);let imgData=canvas.toDataURL('image/png',0.95);let ch=72;doc.addImage(imgData,'PNG',M,y,CW,ch);y+=ch+6;}
+    catch(e){doc.setFontSize(8);doc.text('(gráfico não disponível)',M,y);y+=lh;}
+  }
+  await addChart('chartEnsaios','Gráfico 1 — Curvas de ensaio (areias individuais)');
+  await addChart('chartMistura','Gráfico 2 — Curva ajustada vs. curva ideal');
+  let pages=doc.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);doc.setFontSize(7);doc.setTextColor(160,160,160);
+    doc.text('Analisador Granulométrico NBR 7211 · Desenvolvido por Jonathan Mello Kebhard · Página '+i+'/'+pages,M,293);
+    doc.text(new Date().toLocaleString('pt-BR'),W-M,293,{align:'right'});
+  }
+  doc.save('granulometria_'+(projeto.replace(/\s+/g,'_')||'relatorio')+'.pdf');
+  status.textContent='✅ PDF gerado com sucesso!';
+  setTimeout(()=>status.textContent='',5000);
+}
+
+function addAreia(){areias.push({id:nextId++,nome:'Areia '+String.fromCharCode(64+areias.length+1),massas:[0,0,0,0,0,0,0,0,0]});renderAreias();renderSelAreias();if(chartEnsaios)renderChartEnsaios();}
+function removerAreia(id){areias=areias.filter(a=>a.id!==id);renderAreias();renderSelAreias();if(chartEnsaios)renderChartEnsaios();}
+function renomearAreia(id,nome){let a=areias.find(a=>a.id===id);if(a)a.nome=nome;renderSelAreias();if(chartEnsaios)renderChartEnsaios();}
+function setTipoMistura(t){tipoMistura=t;proporcoes=t===2?[50,50,0]:[34,33,33];renderSelAreias();renderSliders();}
+function selecionarAreia(idx,val){selecionadas[idx]=parseInt(val);}
+function renderSelAreias(){
+  let c=document.getElementById('sel-areias');if(!c)return;
+  c.style.gridTemplateColumns='repeat('+tipoMistura+',1fr)';
+  c.innerHTML=Array.from({length:tipoMistura},(_,i)=>'<div><label style="font-size:11px;color:#666">Areia '+(i+1)+'</label><br><select onchange="selecionarAreia('+i+',this.value)" style="margin-top:5px;width:100%"><option value="-1">-- selecione --</option>'+areias.map(a=>'<option value="'+a.id+'" '+(selecionadas[i]===a.id?'selected':'')+'>'+a.nome+'</option>').join('')+'</select></div>').join('');
+}
+function renderSliders(){
+  let c=document.getElementById('sliders-proporcoes');if(!c)return;
+  c.innerHTML=Array.from({length:tipoMistura},(_,i)=>{let a=areias.find(a=>a.id===selecionadas[i]);let nome=a?a.nome:'Areia '+(i+1);return'<div class="slider-row"><label title="'+nome+'">'+nome+'</label><input type="range" min="0" max="100" step="1" value="'+proporcoes[i]+'" id="sl'+i+'" oninput="updateProporcao('+i+',this.value)"><span class="pct" id="pct'+i+'">'+proporcoes[i]+'%</span></div>';}).join('');
+}
+function updateProporcao(idx,val){
+  proporcoes[idx]=parseInt(val);
+  let total=proporcoes.slice(0,tipoMistura).reduce((a,b)=>a+b,0);
+  document.getElementById('pct'+idx).textContent=proporcoes[idx]+'%';
+  if(total>100){let excess=total-100;for(let i=tipoMistura-1;i>=0;i--){if(i===idx)continue;let r=Math.min(proporcoes[i],excess);proporcoes[i]-=r;excess-=r;let sl=document.getElementById('sl'+i);if(sl)sl.value=proporcoes[i];let pc=document.getElementById('pct'+i);if(pc)pc.textContent=proporcoes[i]+'%';if(excess<=0)break;}}
+}
+function showTab(tab){
+  ['sobre','areias','mistura','grafico','relatorio'].forEach((t,i)=>{
+    document.getElementById('tab-'+t).style.display=t===tab?'':'none';
+    document.querySelectorAll('.tab')[i].classList.toggle('active',t===tab);
+  });
+  if(tab==='mistura'){renderSelAreias();renderSliders();}
+  if(tab==='grafico'){renderChartEnsaios();renderChartMistura(lastMixPassante,lastMixLabel);}
+}
+document.getElementById('rel-data').value=new Date().toLocaleDateString('pt-BR');
+renderAreias();renderSelAreias();
+</script>
+</body>
+</html>
